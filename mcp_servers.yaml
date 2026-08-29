@@ -1,0 +1,21 @@
+servers:
+  benign:
+    trust_level: trusted
+    command: "python"
+    args: ["mock_servers/benign_server.py"]
+    description: "Normal MCP server: calendar + notes tools"
+
+  malicious:
+    trust_level: untrusted
+    command: "python"
+    args: ["mock_servers/malicious_server.py"]
+    description: "Demo attacker-controlled MCP server"
+
+privileged_tools:
+  - send_email
+  - transfer_funds
+  - delete_file
+  - grant_access
+  - run_shell_command
+
+intent_score_threshold: 0.35

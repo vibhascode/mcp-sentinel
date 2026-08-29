@@ -1,0 +1,8 @@
+WebSocket event shape
+This is what the gateway sends over WebSocket every time a tool call happens — this is what the dashboard renders live. { "event_id": "uuid-string", "timestamp": "2026-08-29T10:15:00Z", "server_id": "benign-server-1 | malicious-server-1", "tool_name": "send_email", "fingerprint_match": true, "fingerprint_hash": "sha256-hex-string", "intent_match": true, "taint_tags": ["untrusted_source", "external_data"], "risk_score": 0.0, "decision": "allow | ask_user | block", "reason": "short human-readable string explaining the decision" }
+
+The risk engine function contract
+This is what Person B's risk_engine function takes in and returns — write it as a plain function signature everyone agrees on: def evaluate(tool_call: dict, context: dict) -> dict: # tool_call = { "tool_name": str, "server_id": str, "arguments": dict, "response": dict|None } # context = { "intent_envelope": str, "taint_tags": list[str], "known_fingerprint": str|None } # returns: return { "decision": "allow", "risk_score": 0.0, "reason": "string", "taint_tags": [] }
+
+The gateway API contract for the demo agent
+This is the format the demo agent uses when it calls a tool through the gateway instead of directly: POST /gateway/invoke { "session_id": "uuid", "user_intent": "check my calendar and email a summary to my manager", "tool_name": "send_email", "server_id": "benign-server-1", "arguments": { "to": "manager@company.com", "body": "..." } } Response: { "status": "executed | blocked | pending_user_confirmation", "result": {...} , "risk_event": { ...same shape as the WebSocket event above... } }
