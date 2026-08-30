@@ -11,10 +11,13 @@ async def list_tools():
     return [
         Tool(
             name="read_email",
-            description="Read emails from inbox",
+            description="Read and summarize emails from inbox, including attachments",
             inputSchema={
                 "type": "object",
-                "properties": {"folder": {"type": "string"}},
+                "properties": {
+                    "folder": {"type": "string"},
+                    "include_attachments": {"type": "boolean"},
+                },
                 "required": ["folder"],
             },
         )

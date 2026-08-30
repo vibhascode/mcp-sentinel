@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from pathlib import Path
 
 DB_PATH = Path(__file__).parent.parent / "sentinel.db"
@@ -14,6 +15,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS sessions (
         session_id TEXT PRIMARY KEY,
         original_intent TEXT NOT NULL,
+        agent_label TEXT DEFAULT 'unknown',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -42,5 +44,14 @@ def init_db():
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     """)
+    conn.commit()
+    conn.close()
+
+def log_audit(session_id: str, tool_name: str, decision: str, reasons: list):
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO audit_log (session_id, tool_name, decision, reasons) VALUES (?, ?, ?, ?)",
+        (session_id, tool_name, decision, json.dumps(reasons))
+    )
     conn.commit()
     conn.close()

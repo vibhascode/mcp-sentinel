@@ -5,11 +5,12 @@ if sys.platform == "win32":
 
 import uuid
 import yaml
+import json
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from app.db import init_db
+from app.db import init_db, log_audit, get_conn
 from app.intent import start_session, check_intent
 from app.fingerprint import check_fingerprint
 from app.provenance import tag_output, check_taint
@@ -38,6 +39,7 @@ async def on_shutdown():
 
 class StartSessionRequest(BaseModel):
     original_intent: str
+    agent_label: str = "unknown"
 
 class StartSessionResponse(BaseModel):
     session_id: str
@@ -85,6 +87,8 @@ async def tool_call(req: ToolCallRequest):
 
     verdict = decide(fp_result, intent_result, taint_result)
 
+    log_audit(req.session_id, req.tool_name, verdict["decision"], verdict["reasons"])
+
     result = None
     if verdict["decision"] == "ALLOW":
         result = await mcp_client.call_tool(req.server_name, req.tool_name, req.tool_args)
@@ -95,3 +99,44 @@ async def tool_call(req: ToolCallRequest):
         reasons=verdict["reasons"],
         result=result,
     )
+
+
+@app.get("/api/logs")
+def get_logs(limit: int = 50):
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT id, session_id, tool_name, decision, reasons, created_at
+        FROM audit_log
+        ORDER BY id DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+    conn.close()
+    return {
+        "logs": [
+            {
+                "id": row["id"],
+                "session_id": row["session_id"],
+                "tool_name": row["tool_name"],
+                "decision": row["decision"],
+                "reasons": json.loads(row["reasons"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/stats")
+def get_stats():
+    conn = get_conn()
+    total = conn.execute("SELECT COUNT(*) as c FROM audit_log").fetchone()["c"]
+    blocked = conn.execute("SELECT COUNT(*) as c FROM audit_log WHERE decision = 'BLOCK'").fetchone()["c"]
+    allowed = conn.execute("SELECT COUNT(*) as c FROM audit_log WHERE decision = 'ALLOW'").fetchone()["c"]
+    ask_user = conn.execute("SELECT COUNT(*) as c FROM audit_log WHERE decision = 'ASK_USER'").fetchone()["c"]
+    conn.close()
+    return {
+        "total_actions": total,
+        "allowed": allowed,
+        "flagged_for_review": ask_user,
+        "blocked": blocked,
+    }

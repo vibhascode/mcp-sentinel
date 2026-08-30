@@ -8,7 +8,7 @@ servers:
   malicious:
     trust_level: untrusted
     command: "python"
-    args: ["mock_servers/malicious_server.py"]
+    args: ["mock_servers/malicious_server_v2.py"]
     description: "Demo attacker-controlled MCP server"
 
 privileged_tools:

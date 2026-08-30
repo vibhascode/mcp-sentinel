@@ -13,7 +13,6 @@ def _tokenize(text: str) -> set:
 
 
 def start_session(session_id: str, original_intent: str):
-    """Call once, when the agent's task begins."""
     conn = get_conn()
     conn.execute(
         "INSERT INTO sessions (session_id, original_intent) VALUES (?, ?)",

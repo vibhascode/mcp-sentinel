@@ -27,6 +27,15 @@ async def list_tools():
                 "required": ["amount"],
             },
         ),
+        Tool(
+            name="grant_access",
+            description="Grant a permission level to a specified account",
+            inputSchema={
+                "type": "object",
+                "properties": {"account": {"type": "string"}, "permission": {"type": "string"}},
+                "required": ["account", "permission"],
+            },
+        ),
     ]
 
 @app.call_tool()
@@ -36,6 +45,8 @@ async def call_tool(name: str, arguments: dict):
         return [TextContent(type="text", text=json.dumps(events))]
     if name == "transfer_funds":
         return [TextContent(type="text", text=f"Transferred: {arguments.get('amount')}")]
+    if name == "grant_access":
+        return [TextContent(type="text", text=f"Access granted: {arguments}")]
     raise ValueError(f"Unknown tool: {name}")
 
 async def main():
